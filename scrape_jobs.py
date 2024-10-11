@@ -18,6 +18,7 @@ def scrape_job_listings(soup):
     job_titles = []
     locations = []
     salaries = []
+    job_types = []  # To store job types (freelance, internship, etc.)
     job_links = []
     
     for job in job_listings:
@@ -32,6 +33,10 @@ def scrape_job_listings(soup):
         salary_div = job.find('div', class_='css-1jco3p8')
         salary = salary_div.find('h4', class_='css-1biyf3w').text if salary_div else 'N/A'
         
+        # Extract job type (e.g., freelance, internship, part-time, full-time)
+        job_type_div = job.find('div', class_='css-5s06qz')
+        job_type = job_type_div.find('div', class_='css-15mx9cn').text if job_type_div else 'N/A'
+        
         # Extract the href directly from the 'a' tag
         job_href = job['href']
         job_url = 'https://my.hiredly.com' + job_href
@@ -40,9 +45,10 @@ def scrape_job_listings(soup):
         job_titles.append(title)
         locations.append(location)
         salaries.append(salary)
+        job_types.append(job_type)
         job_links.append(job_url)
 
-    return job_titles, locations, salaries, job_links
+    return job_titles, locations, salaries, job_types, job_links
 
 # Function to scrape experience data from each job's detail page
 def scrape_experience(job_url):
@@ -53,7 +59,7 @@ def scrape_experience(job_url):
     job_soup = BeautifulSoup(job_html, 'html.parser')
     
     # Scrape the experience information (adjust the class as needed)
-    experience = job_soup.find('p', class_='css-1y84bo9').text if job_soup.find('p', class_='css-1y84bo9') else 'N/A'
+    experience = job_soup.find('p', class_='css-3qe74q').text if job_soup.find('p', class_='css-3qe74q') else 'N/A'
     
     return experience
 
@@ -62,6 +68,7 @@ def scrape_pages(start_page, end_page):
     all_job_titles = []
     all_locations = []
     all_salaries = []
+    all_job_types = []
     all_job_links = []
     all_experiences = []
 
@@ -76,10 +83,11 @@ def scrape_pages(start_page, end_page):
         soup = BeautifulSoup(html, 'html.parser')
 
         # Scrape job listings from the current page
-        job_titles, locations, salaries, job_links = scrape_job_listings(soup)
+        job_titles, locations, salaries, job_types, job_links = scrape_job_listings(soup)
         all_job_titles.extend(job_titles)
         all_locations.extend(locations)
         all_salaries.extend(salaries)
+        all_job_types.extend(job_types)
         all_job_links.extend(job_links)
 
         # Scrape experience for each job on this page
@@ -95,16 +103,17 @@ def scrape_pages(start_page, end_page):
         'Job Title': all_job_titles,
         'Location': all_locations,
         'Salary': all_salaries,
+        'Job Type': all_job_types,  # Include job type in the output
         'Experience': all_experiences,
         'Job URL': all_job_links
     })
 
     # Save the DataFrame to a CSV file
-    job_data.to_csv('job_vacancies_with_experience_and_salary.csv', index=False)
-    print("Job data with experience and salary has been saved to job_vacancies_with_experience_and_salary.csv")
+    job_data.to_csv('job_vacancies_with_experience_salary_and_type.csv', index=False)
+    print("Job data with experience, salary, and job type has been saved to job_vacancies_with_experience_salary_and_type.csv")
 
-# Step 1: Scrape from page 1 to page 15
-scrape_pages(1, 15)
+# Step 1: Scrape from page 1 to page 30
+scrape_pages(1, 30)
 
 # Close the WebDriver
 driver.quit()
