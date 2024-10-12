@@ -99,10 +99,10 @@ def scrape_pages(start_page, end_page):
     })
 
     # Save the DataFrame to a CSV file
-    job_data.to_csv('scrape_job_vacancies_data.csv', index=False)
-    print("Job data with salary and job type has been saved to job_vacancies_with_salary_and_type.csv")
+    job_data.to_csv('scraped_job_vacancies_data.csv', index=False)
+    print("Job data with salary and job type has been saved to scraped_job_vacancies_data.csv")
 
-# Step 1: Scrape from page 1 to page 30
+# Step 1: Scrape from page 1 to page 40
 scrape_pages(1, 40)
 
 # Close the WebDriver
