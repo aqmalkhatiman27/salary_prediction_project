@@ -11,14 +11,12 @@ chrome_options.add_argument("--headless")  # Run in headless mode (no browser wi
 # Initialize the WebDriver
 driver = webdriver.Chrome(options=chrome_options)
 
-# Function to scrape job data on each page
+# Function to scrape job listing page (titles, locations, job URLs)
 def scrape_job_listings(soup):
     job_listings = soup.find_all('a', class_='css-17aghwz')  # Adjust this based on the actual class names
     
     job_titles = []
     locations = []
-    salaries = []
-    job_types = []  # To store job types (freelance, internship, etc.)
     job_links = []
     
     for job in job_listings:
@@ -29,14 +27,6 @@ def scrape_job_listings(soup):
         location_div = job.find('div', class_='css-5s06qz')
         location = location_div.find('h4', class_='css-1biyf3w').text if location_div else 'N/A'
         
-        # Extract salary if available
-        salary_div = job.find('div', class_='css-1jco3p8')
-        salary = salary_div.find('h4', class_='css-1biyf3w').text if salary_div else 'N/A'
-        
-        # Extract job type (e.g., freelance, internship, part-time, full-time)
-        job_type_div = job.find('div', class_='css-5s06qz')
-        job_type = job_type_div.find('div', class_='css-15mx9cn').text if job_type_div else 'N/A'
-        
         # Extract the href directly from the 'a' tag
         job_href = job['href']
         job_url = 'https://my.hiredly.com' + job_href
@@ -44,24 +34,27 @@ def scrape_job_listings(soup):
         # Append the data to the lists
         job_titles.append(title)
         locations.append(location)
-        salaries.append(salary)
-        job_types.append(job_type)
         job_links.append(job_url)
 
-    return job_titles, locations, salaries, job_types, job_links
+    return job_titles, locations, job_links
 
-# Function to scrape experience data from each job's detail page
-def scrape_experience(job_url):
+# Function to scrape salary and job type from individual job pages using aria-label attribute
+def scrape_job_details(job_url):
     driver.get(job_url)
     time.sleep(2)  # Give the page time to load
     
     job_html = driver.page_source
     job_soup = BeautifulSoup(job_html, 'html.parser')
+
+    # Scrape the salary information using aria-label
+    salary_html = job_soup.find('p', attrs={'aria-label': 'job-salary-value'})
+    salary = salary_html.text if salary_html else 'N/A'
+
+    # Scrape the job type information using aria-label
+    job_type_html = job_soup.find('p', attrs={'aria-label': 'job-type'})
+    job_type = job_type_html.text if job_type_html else 'N/A'
     
-    # Scrape the experience information (adjust the class as needed)
-    experience = job_soup.find('p', class_='css-3qe74q').text if job_soup.find('p', class_='css-3qe74q') else 'N/A'
-    
-    return experience
+    return salary, job_type
 
 # Function to scrape a fixed number of pages
 def scrape_pages(start_page, end_page):
@@ -70,7 +63,6 @@ def scrape_pages(start_page, end_page):
     all_salaries = []
     all_job_types = []
     all_job_links = []
-    all_experiences = []
 
     for page in range(start_page, end_page + 1):
         # Build the URL for the current page
@@ -83,17 +75,16 @@ def scrape_pages(start_page, end_page):
         soup = BeautifulSoup(html, 'html.parser')
 
         # Scrape job listings from the current page
-        job_titles, locations, salaries, job_types, job_links = scrape_job_listings(soup)
+        job_titles, locations, job_links = scrape_job_listings(soup)
         all_job_titles.extend(job_titles)
         all_locations.extend(locations)
-        all_salaries.extend(salaries)
-        all_job_types.extend(job_types)
         all_job_links.extend(job_links)
 
-        # Scrape experience for each job on this page
+        # Scrape salary and job type from each job's detail page
         for job_url in job_links:
-            experience = scrape_experience(job_url)
-            all_experiences.append(experience)
+            salary, job_type = scrape_job_details(job_url)
+            all_salaries.append(salary)
+            all_job_types.append(job_type)
             time.sleep(3)  # Wait for 3 seconds between requests
         
         print(f"Scraped page {page}")
@@ -104,16 +95,15 @@ def scrape_pages(start_page, end_page):
         'Location': all_locations,
         'Salary': all_salaries,
         'Job Type': all_job_types,  # Include job type in the output
-        'Experience': all_experiences,
         'Job URL': all_job_links
     })
 
     # Save the DataFrame to a CSV file
-    job_data.to_csv('job_vacancies_with_experience_salary_and_type.csv', index=False)
-    print("Job data with experience, salary, and job type has been saved to job_vacancies_with_experience_salary_and_type.csv")
+    job_data.to_csv('scrape_job_vacancies_data.csv', index=False)
+    print("Job data with salary and job type has been saved to job_vacancies_with_salary_and_type.csv")
 
 # Step 1: Scrape from page 1 to page 30
-scrape_pages(1, 30)
+scrape_pages(1, 40)
 
 # Close the WebDriver
 driver.quit()
