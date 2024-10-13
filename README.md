@@ -1,5 +1,3 @@
-Here’s the documentation rewritten in **Markdown** format, ready for use in your portfolio:
-
 ---
 
 # **Salary Prediction for Job Listings**
